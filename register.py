@@ -1,3 +1,4 @@
+import os
 import bcrypt
 from flask import Flask, redirect, render_template, request, session, url_for
 from form import RegisterForm
@@ -5,9 +6,16 @@ from model.user import db, User
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    "postgresql://postgres:Nopassword%4003@localhost/test"
-)
+# app.config["SQLALCHEMY_DATABASE_URI"] = (
+#     "postgresql://postgres:Nopassword%4003@localhost/test"
+# )
+# import os
+
+db_url = os.environ.get("DATABASE_URL")
+
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 db.init_app(app)
 
 with app.app_context():
@@ -86,8 +94,10 @@ def delete_account():
                 db.session.commit()
                 session.pop("user_id", None)
                 return redirect(url_for("login"))
-      
-    return render_template("delete_account.html", message="Are you sure you want to delete your account?")
+
+    return render_template(
+        "delete_account.html", message="Are you sure you want to delete your account?"
+    )
 
 
 @app.route("/dashboard/<username>")
@@ -99,4 +109,6 @@ def dashboard_method(username=None):
     )
 
 
-app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
